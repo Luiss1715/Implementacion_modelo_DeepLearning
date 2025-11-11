@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.env
+.ipynb_checkpoints/
+# Data (no subir)
+data/
+reports/figures/
+runs/
+.DS_Store
+.vscode/

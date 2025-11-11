@@ -1,0 +1,9 @@
+tensorflow==2.16.1
+keras==3.3.3
+tensorflow-datasets
+numpy
+pandas
+matplotlib
+scikit-learn
+tqdm
+jupyter
