@@ -26,30 +26,48 @@ def load_ds(root, img_size=(224,224), batch_size=16, seed=42):
 
     aug = keras.Sequential([
         layers.RandomFlip("horizontal"),
-        layers.RandomRotation(0.05),
-        layers.RandomZoom(0.1),
+        layers.RandomRotation(0.12),
+        layers.RandomZoom(0.15),
+        layers.RandomTranslation(0.05, 0.05),
+        layers.RandomContrast(0.2),
     ])
+
     ds_train = ds_train.map(lambda x,y: (aug(x, training=True), y),
                             num_parallel_calls=AUTOTUNE)
 
     return ds_train.prefetch(AUTOTUNE), ds_val.prefetch(AUTOTUNE), class_names
 
-def build_model(num_classes, input_shape=(224,224,3), dropout=0.3, l2_reg=1e-5, train_backbone=False):
-    base = keras.applications.MobileNetV3Small(
-        include_top=False, input_shape=input_shape, weights="imagenet"
-    )
-    base.trainable = train_backbone  
+def build_model(num_classes,
+                input_shape=(224,224,3),
+                dropout=0.3,
+                l2_reg=1e-5,
+                train_backbone=False,
+                backbone="mobilenet_v3_small"):
+    if backbone == "mobilenet_v3_small":
+        Base = keras.applications.MobileNetV3Small
+        preprocess = keras.applications.mobilenet_v3.preprocess_input
+    elif backbone == "efficientnet_b0":
+        Base = keras.applications.EfficientNetB0
+        preprocess = keras.applications.efficientnet.preprocess_input
+    else:
+        raise ValueError(f"Backbone no soportado: {backbone}")
+
+    base = Base(include_top=False, input_shape=input_shape, weights="imagenet")
+    base.trainable = train_backbone
+
     inputs = keras.Input(shape=input_shape)
-    x = keras.applications.mobilenet_v3.preprocess_input(inputs)
+    x = preprocess(inputs)
     x = base(x, training=False)
     x = layers.GlobalAveragePooling2D()(x)
     x = layers.Dropout(dropout)(x)
     outputs = layers.Dense(
-        num_classes, activation="softmax",
+        num_classes,
+        activation="softmax",
         kernel_regularizer=keras.regularizers.l2(l2_reg)
     )(x)
     model = keras.Model(inputs, outputs)
     return model
+
 
 def get_backbone(model):
     for lyr in model.layers:
